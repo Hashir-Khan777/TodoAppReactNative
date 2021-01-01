@@ -6,9 +6,11 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import firebase from "./config";
 import "firebase/database";
+import Header from "./Header";
 
 export default function App() {
   var countTodo = 0;
@@ -17,20 +19,38 @@ export default function App() {
 
   const [todo, settodo] = useState("");
 
+  const [error, setError] = useState("");
+
   var secretKey = firebase.database().ref("/").push().key;
 
-  const addToDo = () => {
-    const newToDo = {
-      key: secretKey,
-      item: todo,
-    };
-    firebase.database().ref("/").child(secretKey).set(newToDo);
+  var todoItemKey;
 
-    settodo("");
+  const addToDo = () => {
+    if (todo == "") {
+      setError("Enter a value...");
+    } else {
+      setError("");
+      const newToDo = {
+        key: secretKey,
+        item: todo,
+      };
+      firebase.database().ref("/").child(secretKey).set(newToDo);
+
+      settodo("");
+
+      firebase
+        .database()
+        .ref("/")
+        .on("child_added", (data) => {
+          todoItemKey = data.val().key;
+        });
+    }
   };
 
   const deleteTods = () => {
     firebase.database().ref("/").remove();
+    whatToDo = [];
+    countTodo = 0;
   };
 
   firebase
@@ -40,61 +60,78 @@ export default function App() {
       whatToDo = [...whatToDo, data.val().item];
     });
 
+  function deleteOneTodo(e) {
+    console.log(e);
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.inputAndButtonSction}>
-        <View style={styles.inputBox}>
-          <TextInput
-            keyboardType="default"
-            style={styles.input}
-            value={todo}
-            placeholder="What to do..."
-            onChangeText={(e) => settodo(e)}
-          />
-        </View>
-
-        <View style={styles.buttonSection}>
-          <TouchableOpacity
-            style={styles.button}
-            activeOpacity={0.5}
-            onPress={() => addToDo()}
-          >
-            <Text style={styles.todoButtonText}>Add</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            activeOpacity={0.5}
-            onPress={() => deleteTods()}
-          >
-            <Text style={styles.todoButtonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.toDosList}>
-        {whatToDo.map((value, key) => {
-          return (
-            <View key={key} style={styles.todoListItem}>
-              <Text style={styles.todoItemText}>
-                {(countTodo += 1) + ". " + value}
-              </Text>
-
-              <View style={styles.todoListItemButtonSection}>
-                <TouchableOpacity style={styles.todoButton} activeOpacity={0.5}>
-                  <Text style={styles.todoButtonText}>Update</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.todoButton} activeOpacity={0.5}>
-                  <Text style={styles.todoButtonText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
+    <ScrollView>
+      <Header />
+      <View style={styles.container}>
+        <View style={styles.inputAndButtonSction}>
+          <View style={styles.inputBox}>
+            <TextInput
+              keyboardType="default"
+              style={styles.input}
+              value={todo}
+              placeholder="What to do..."
+              onChangeText={(e) => settodo(e)}
+            />
+            <View>
+              <Text style={styles.errorText}>{error}</Text>
             </View>
-          );
-        })}
+          </View>
+
+          <View style={styles.buttonSection}>
+            <TouchableOpacity
+              style={styles.button}
+              activeOpacity={0.5}
+              onPress={() => addToDo()}
+            >
+              <Text style={styles.todoButtonText}>Add</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.button}
+              activeOpacity={0.5}
+              onPress={() => deleteTods()}
+            >
+              <Text style={styles.todoButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.toDosList}>
+          {whatToDo.map((value, key) => {
+            return (
+              <View key={key} style={styles.todoListItem}>
+                <Text style={styles.todoItemText}>
+                  {(countTodo += 1) + ". " + value}
+                </Text>
+
+                <View style={styles.todoListItemButtonSection}>
+                  <TouchableOpacity
+                    style={styles.todoButton}
+                    activeOpacity={0.5}
+                  >
+                    <Text style={styles.todoButtonText}>Update</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.todoButton}
+                    activeOpacity={0.5}
+                    onPress={(e) => deleteOneTodo(e)}
+                  >
+                    <Text style={styles.todoButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+        <StatusBar style="auto" />
       </View>
-      <StatusBar style="auto" />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -103,14 +140,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     backgroundColor: "#fff",
-    justifyContent: "center",
     marginRight: 20,
     marginLeft: 20,
+    marginTop: 150,
   },
   inputBox: {
     flex: 1,
     justifyContent: "space-around",
-    alignItems: "center",
   },
   input: {
     width: "100%",
@@ -162,5 +198,9 @@ const styles = StyleSheet.create({
   },
   todoButtonText: {
     color: "#fff",
+  },
+  errorText: {
+    color: "red",
+    fontWeight: "900",
   },
 });
