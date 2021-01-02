@@ -58,8 +58,6 @@ export default function App() {
     firebase.database().ref("/").child(firebaseKey).remove();
 
     whatToDo.splice(itemKey, 1);
-
-    console.log(whatToDo);
   }
 
   return (
