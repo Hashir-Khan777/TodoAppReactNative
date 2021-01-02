@@ -17,13 +17,13 @@ export default function App() {
 
   var whatToDo = [];
 
+  var whatToDoKey = [];
+
   const [todo, settodo] = useState("");
 
   const [error, setError] = useState("");
 
   var secretKey = firebase.database().ref("/").push().key;
-
-  var todoItemKey;
 
   const addToDo = () => {
     if (todo == "") {
@@ -37,13 +37,6 @@ export default function App() {
       firebase.database().ref("/").child(secretKey).set(newToDo);
 
       settodo("");
-
-      firebase
-        .database()
-        .ref("/")
-        .on("child_added", (data) => {
-          todoItemKey = data.val().key;
-        });
     }
   };
 
@@ -58,10 +51,15 @@ export default function App() {
     .ref("/")
     .on("child_added", (data) => {
       whatToDo = [...whatToDo, data.val().item];
+      whatToDoKey = [...whatToDoKey, data.val().key];
     });
 
-  function deleteOneTodo(e) {
-    console.log(e);
+  function deleteOneTodo(firebaseKey, itemKey) {
+    firebase.database().ref("/").child(firebaseKey).remove();
+
+    whatToDo.splice(itemKey, 1);
+
+    console.log(whatToDo);
   }
 
   return (
@@ -113,14 +111,7 @@ export default function App() {
                   <TouchableOpacity
                     style={styles.todoButton}
                     activeOpacity={0.5}
-                  >
-                    <Text style={styles.todoButtonText}>Update</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.todoButton}
-                    activeOpacity={0.5}
-                    onPress={(e) => deleteOneTodo(e)}
+                    onPress={() => deleteOneTodo(whatToDoKey[key], key)}
                   >
                     <Text style={styles.todoButtonText}>Delete</Text>
                   </TouchableOpacity>
